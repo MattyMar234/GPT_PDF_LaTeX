@@ -12,15 +12,15 @@ import concurrent.futures
 
 # This Default Prompt Using Chinese and could be changed to other languages.
 
-DEFAULT_PROMPT = """使用markdown语法，将图片中识别到的文字转换为markdown格式输出。你必须做到：
-1. 输出和使用识别到的图片的相同的语言，例如，识别到英语的字段，输出的内容必须是英语。
-2. 不要解释和输出无关的文字，直接输出图片中的内容。例如，严禁输出 “以下是我根据图片内容生成的markdown文本：”这样的例子，而是应该直接输出markdown。
-3. 内容不要包含在```markdown ```中、段落公式使用 $$ $$ 的形式、行内公式使用 $ $ 的形式、忽略掉长直线、忽略掉页码。
-再次强调，不要解释和输出无关的文字，直接输出图片中的内容。
+DEFAULT_PROMPT = """Using markdown syntax, convert the text recognised in the image into markdown format for output. You must do:
+1. output the same language as the one that uses the recognised image, for example, for fields recognised in English, the output must be in English.
+2. don't interpret the text which is not related to the output, and output the content in the image directly. For example, it is strictly forbidden to output examples like ``Here is the markdown text I generated based on the content of the image:‘’ Instead, you should output markdown directly.
+3. Content should not be included in ```markdown ```, paragraph formulas should be in the form of $$ $$, in-line formulas should be in the form of $ $$, long straight lines should be ignored, and page numbers should be ignored.
+Again, do not interpret text that is not relevant to the output, and output the content in the image directly.
 """
-DEFAULT_RECT_PROMPT = """图片中用红色框和名称(%s)标注出了一些区域。如果区域是表格或者图片，使用 ![]() 的形式插入到输出内容中，否则直接输出文字内容。
+DEFAULT_RECT_PROMPT = """Areas are marked in the image with a red box and a name (%s). If the regions are tables or images, use ! []() form to insert into the output, otherwise output the text content directly.
 """
-DEFAULT_ROLE_PROMPT = """你是一个PDF文档解析器，使用markdown和latex语法输出图片的内容。
+DEFAULT_ROLE_PROMPT = """You are a PDF document parser that outputs the content of images using markdown and latex syntax.
 """
 
 
