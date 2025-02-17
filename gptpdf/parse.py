@@ -12,15 +12,19 @@ import concurrent.futures
 
 # This Default Prompt Using Chinese and could be changed to other languages.
 
-DEFAULT_PROMPT = """Using markdown syntax, convert the text recognised in the image into markdown format for output. You must do:
+DEFAULT_PROMPT = """Using LaTeX syntax, convert the text recognised in the image into LaTeX format for output. You must do:
 1. output the same language as the one that uses the recognised image, for example, for fields recognised in English, the output must be in English.
-2. don't interpret the text which is not related to the output, and output the content in the image directly. For example, it is strictly forbidden to output examples like ``Here is the markdown text I generated based on the content of the image:‘’ Instead, you should output markdown directly.
-3. Content should not be included in ```markdown ```, paragraph formulas should be in the form of $$ $$, in-line formulas should be in the form of $ $$, long straight lines should be ignored, and page numbers should be ignored.
+2. don't interpret the text which is not related to the output, and output the content in the image directly. For example, it is strictly forbidden to output examples like ``Here is the LaTeX text I generated based on the content of the image:‘’ Instead, you should output LaTeX directly.
+3. Content should not be included in ```latex ```, paragraph formulas should be in the form of $$ $$, in-line formulas should be in the form of $ $$, long straight lines should be ignored, and page numbers should be ignored.
 Again, do not interpret text that is not relevant to the output, and output the content in the image directly.
 """
-DEFAULT_RECT_PROMPT = """Areas are marked in the image with a red box and a name (%s). If the regions are tables or images, use ! []() form to insert into the output, otherwise output the text content directly.
+DEFAULT_RECT_PROMPT = """Areas are marked in the image with a red box and a name (%s) DO NOT CHANGE THE %s. If the regions are tables or images, use 
+\\begin{center}
+    	\\includegraphics[width=0.5\\linewidth]{%s}
+\\end{center}
+form to insert into the output, otherwise output the text content directly. You could also use tikz if possible.
 """
-DEFAULT_ROLE_PROMPT = """You are a PDF document parser that outputs the content of images using markdown and latex syntax.
+DEFAULT_ROLE_PROMPT = """You are a PDF document parser that outputs the content of images using latex syntax.
 """
 
 
@@ -225,15 +229,15 @@ def _gpt_parse_images(
             index, content = future.result()
 
             # 在某些情况下大模型还是会输出 ```markdown ```字符串
-            if '```markdown' in content:
-                content = content.replace('```markdown\n', '')
+            if '```latex' in content:
+                content = content.replace('```latex\n', '')
                 last_backticks_pos = content.rfind('```')
                 if last_backticks_pos != -1:
                     content = content[:last_backticks_pos] + content[last_backticks_pos + 3:]
 
             contents[index] = content
 
-    output_path = os.path.join(output_dir, 'output.md')
+    output_path = os.path.join(output_dir, 'output.tex')
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write('\n\n'.join(contents))
 

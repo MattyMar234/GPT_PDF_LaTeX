@@ -5,6 +5,7 @@
 <a href="README.md"><img src="https://img.shields.io/badge/document-English-blue.svg" alt="EN doc"></a>
 </p>
 
+This is a fork of the [gptpdf](https://github.com/CosmosShadow/gptpdf) repository. Instead of using markdown, the LLM will output LaTeX code.
 Using VLLM (like GPT-4o) to parse PDF into markdown.
 
 Our approach is very simple (only 293 lines of code), but can almost perfectly parse typography, math formulas, tables, pictures, charts, etc.
