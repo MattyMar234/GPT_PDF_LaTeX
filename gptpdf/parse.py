@@ -21,9 +21,10 @@ In each page you could possibly find a title, so use section or subsection etc.
 """
 DEFAULT_RECT_PROMPT = """Areas are marked in the image with a red box and a name (%s) DO NOT CHANGE THE %s. If the regions are tables or images, use 
 \\begin{center}
-    	\\includegraphics[width=0.5\\linewidth]{%s}
+    	\\includegraphics[width=0.5\\linewidth,trim={0 0 0 0},clip]{%s}
 \\end{center}
 form to insert into the output, otherwise output the text content directly. You could also use tikz if possible, but prefer images if the tikz is complex.
+If instead the image is taking, for example the title, text and the correct part that should be the image, you could use the trim option in the includegraphics to remove the unwanted part (as it could be already present in the text version).
 """
 DEFAULT_ROLE_PROMPT = """You are a PDF document parser that outputs the content of images using latex syntax.
 """
