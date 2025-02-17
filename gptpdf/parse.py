@@ -191,7 +191,7 @@ def _gpt_parse_images(
         **args
 ) -> str:
     """
-    Parse images to markdown content.
+    Parse images to latex content.
     """
     from GeneralAgent import Agent
 
@@ -230,7 +230,7 @@ def _gpt_parse_images(
         for future in concurrent.futures.as_completed(futures):
             index, content = future.result()
 
-            # 在某些情况下大模型还是会输出 ```markdown ```字符串
+            # 在某些情况下大模型还是会输出 ```latex ```字符串
             if '```latex' in content:
                 content = content.replace('```latex\n', '')
                 last_backticks_pos = content.rfind('```')
@@ -263,7 +263,7 @@ def parse_pdf(
         **args
 ) -> Tuple[str, List[str]]:
     """
-    Parse a PDF file to a markdown file.
+    Parse a PDF file to a latex file.
     """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
