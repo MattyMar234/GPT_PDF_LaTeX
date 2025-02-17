@@ -17,12 +17,13 @@ DEFAULT_PROMPT = """Using LaTeX syntax, convert the text recognised in the image
 2. don't interpret the text which is not related to the output, and output the content in the image directly. For example, it is strictly forbidden to output examples like ``Here is the LaTeX text I generated based on the content of the image:‘’ Instead, you should output LaTeX directly.
 3. Content should not be included in ```latex ```, paragraph formulas should be in the form of $$ $$, in-line formulas should be in the form of $ $$, long straight lines should be ignored, and page numbers should be ignored.
 Again, do not interpret text that is not relevant to the output, and output the content in the image directly.
+In each page you could possibly find a title, so use section or subsection etc.
 """
 DEFAULT_RECT_PROMPT = """Areas are marked in the image with a red box and a name (%s) DO NOT CHANGE THE %s. If the regions are tables or images, use 
 \\begin{center}
     	\\includegraphics[width=0.5\\linewidth]{%s}
 \\end{center}
-form to insert into the output, otherwise output the text content directly. You could also use tikz if possible.
+form to insert into the output, otherwise output the text content directly. You could also use tikz if possible, but prefer images if the tikz is complex.
 """
 DEFAULT_ROLE_PROMPT = """You are a PDF document parser that outputs the content of images using latex syntax.
 """
@@ -231,6 +232,11 @@ def _gpt_parse_images(
             # 在某些情况下大模型还是会输出 ```markdown ```字符串
             if '```latex' in content:
                 content = content.replace('```latex\n', '')
+                last_backticks_pos = content.rfind('```')
+                if last_backticks_pos != -1:
+                    content = content[:last_backticks_pos] + content[last_backticks_pos + 3:]
+            if '```' in content:
+                content = content.replace('```\n', '')
                 last_backticks_pos = content.rfind('```')
                 if last_backticks_pos != -1:
                     content = content[:last_backticks_pos] + content[last_backticks_pos + 3:]
