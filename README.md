@@ -80,7 +80,9 @@ def parse_pdf(
         base_url: Optional[str] = None,
         model: str = 'gpt-4o',
         verbose: bool = False,
-        gpt_worker: int = 1
+        gpt_worker: int = 1,
+        document_initial_text: str = '',
+        document_final_text: str = ''
 ) -> Tuple[str, List[str]]:
 ```
 
@@ -118,6 +120,11 @@ Parses a PDF file into a Markdown file and returns the Markdown content along wi
   - `prompt`: Mainly used to guide the model on how to process and convert text content in images.
   - `rect_prompt`: Used to handle cases where specific areas (such as tables or images) are marked in the image.
   - `role_prompt`: Defines the role of the model to ensure the model understands it is performing a PDF document parsing task.
+
+- **document_initial_text**: *str*, default: ''
+    Initial text to be added to the document before the outputted content.
+- **document_final_text**: *str*, default: ''
+    Final text to be added to the document after the outputted content.
 
   You can pass custom prompts in the form of a dictionary to replace any of the prompts. Here is an example:
 
