@@ -10,11 +10,9 @@ from shapely.geometry.base import BaseGeometry
 from shapely.validation import explain_validity
 import concurrent.futures
 
-# This Default Prompt Using Chinese and could be changed to other languages.
-
 DEFAULT_PROMPT = """Using LaTeX syntax, convert the text recognised in the image into LaTeX format for output. You must do:
 1. output the same language as the one that uses the recognised image, for example, for fields recognised in English, the output must be in English.
-2. don't interpret the text which is not related to the output, and output the content in the image directly. For example, it is strictly forbidden to output examples like ``Here is the LaTeX text I generated based on the content of the image:‘’ Instead, you should output LaTeX directly.
+2. don't interpret the text which is not related to the output, and output the content in the image directly. For example, it is strictly forbidden to output examples like ``Here is the LaTeX text I generated based on the content of the image:‘’ Instead, you should output LaTeX code directly.
 3. Content should not be included in ```latex ```, paragraph formulas should be in the form of $$ $$, in-line formulas should be in the form of $ $$, long straight lines should be ignored, and page numbers should be ignored.
 Again, do not interpret text that is not relevant to the output, and output the content in the image directly.
 In each page you could possibly find a title, so use section or subsection etc.
@@ -26,7 +24,7 @@ DEFAULT_RECT_PROMPT = """Areas are marked in the image with a red box and a name
 form to insert into the output, otherwise output the text content directly. You could also use tikz if possible, but prefer images if the tikz is complex.
 If instead the image is taking, for example the title, text and the correct part that should be the image, you could use the trim option in the includegraphics to remove the unwanted part (as it could be already present in the text version).
 """
-DEFAULT_ROLE_PROMPT = """You are a PDF document parser that outputs the content of images using latex syntax.
+DEFAULT_ROLE_PROMPT = """You are a PDF document parser that outputs the content of images using latex syntax. Remember to always use the latex syntax.
 """
 
 
@@ -181,6 +179,8 @@ def _parse_pdf_to_images(pdf_path: str, output_dir: str = './') -> List[Tuple[st
 
 def _gpt_parse_images(
         image_infos: List[Tuple[str, List[str]]],
+        document_initial_text: str,
+        document_final_text: str,
         prompt_dict: Optional[Dict] = None,
         output_dir: str = './',
         api_key: Optional[str] = None,
@@ -246,7 +246,7 @@ def _gpt_parse_images(
 
     output_path = os.path.join(output_dir, 'output.tex')
     with open(output_path, 'w', encoding='utf-8') as f:
-        f.write('\n\n'.join(contents))
+        f.write(document_initial_text + '\n\n' + '\n\n'.join(contents) + '\n\n' + document_final_text) #f.write('\n\n'.join(contents))
 
     return '\n\n'.join(contents)
 
@@ -260,6 +260,8 @@ def parse_pdf(
         model: str = 'gpt-4o',
         verbose: bool = False,
         gpt_worker: int = 1,
+        document_initial_text: str = '',
+        document_final_text: str = '',
         **args
 ) -> Tuple[str, List[str]]:
     """
@@ -278,6 +280,8 @@ def parse_pdf(
         model=model,
         verbose=verbose,
         gpt_worker=gpt_worker,
+        document_initial_text=document_initial_text,
+        document_final_text=document_final_text,
         **args
     )
 
