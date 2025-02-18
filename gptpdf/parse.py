@@ -99,37 +99,37 @@ def _parse_rects(page: fitz.Page) -> List[Tuple[float, float, float, float]]:
     Parse drawings in the page and merge adjacent rectangles.
     """
 
-    # 提取画的内容
+    # Extracting the contents of a painting
     drawings = page.get_drawings()
 
-    # 忽略掉长度小于30的水平直线
+    # Ignore horizontal straight lines of length less than 30
     is_short_line = lambda x: abs(x['rect'][3] - x['rect'][1]) < 1 and abs(x['rect'][2] - x['rect'][0]) < 30
     drawings = [drawing for drawing in drawings if not is_short_line(drawing)]
 
-    # 转换为shapely的矩形
+    # Convert to shapely rectangle
     rect_list = [sg.box(*drawing['rect']) for drawing in drawings]
 
-    # 提取图片区域
+    # Extract image area
     images = page.get_image_info()
     image_rects = [sg.box(*image['bbox']) for image in images]
 
-    # 合并drawings和images
+    # Merge drawings and images
     rect_list += image_rects
 
     merged_rects = _merge_rects(rect_list, distance=10, horizontal_distance=100)
     merged_rects = [rect for rect in merged_rects if explain_validity(rect) == 'Valid Geometry']
 
-    # 将大文本区域和小文本区域分开处理: 大文本相小合并，小文本靠近合并
+    # Separate large and small text areas: large text is merged with small text, small text is merged with close text.
     is_large_content = lambda x: (len(x[4]) / max(1, len(x[4].split('\n')))) > 5
     small_text_area_rects = [sg.box(*x[:4]) for x in page.get_text('blocks') if not is_large_content(x)]
     large_text_area_rects = [sg.box(*x[:4]) for x in page.get_text('blocks') if is_large_content(x)]
     _, merged_rects = _adsorb_rects_to_rects(large_text_area_rects, merged_rects, distance=0.1) # 完全相交
     _, merged_rects = _adsorb_rects_to_rects(small_text_area_rects, merged_rects, distance=5) # 靠近
 
-    # 再次自身合并
+    # Merging itself again
     merged_rects = _merge_rects(merged_rects, distance=10)
 
-    # 过滤比较小的矩形
+    # Filtering smaller rectangles
     merged_rects = [rect for rect in merged_rects if rect.bounds[2] - rect.bounds[0] > 20 and rect.bounds[3] - rect.bounds[1] > 20]
 
     return [rect.bounds for rect in merged_rects]
@@ -139,7 +139,7 @@ def _parse_pdf_to_images(pdf_path: str, output_dir: str = './') -> List[Tuple[st
     """
     Parse PDF to images and save to output_dir.
     """
-    # 打开PDF文件
+    # Open PDF file
     pdf_document = fitz.open(pdf_path)
     image_infos = []
 
@@ -149,24 +149,24 @@ def _parse_pdf_to_images(pdf_path: str, output_dir: str = './') -> List[Tuple[st
         rects = _parse_rects(page)
         for index, rect in enumerate(rects):
             fitz_rect = fitz.Rect(rect)
-            # 保存页面为图片
+            # Save page as image
             pix = page.get_pixmap(clip=fitz_rect, matrix=fitz.Matrix(4, 4))
             name = f'{page_index}_{index}.png'
             pix.save(os.path.join(output_dir, name))
             rect_images.append(name)
-            # # 在页面上绘制红色矩形
+            # # Draw a red rectangle on the page
             big_fitz_rect = fitz.Rect(fitz_rect.x0 - 1, fitz_rect.y0 - 1, fitz_rect.x1 + 1, fitz_rect.y1 + 1)
-            # 空心矩形
+            # hollow rectangle
             page.draw_rect(big_fitz_rect, color=(1, 0, 0), width=1)
-            # 画矩形区域(实心)
+            # Draw rectangular area (solid)
             # page.draw_rect(big_fitz_rect, color=(1, 0, 0), fill=(1, 0, 0))
-            # 在矩形内的左上角写上矩形的索引name，添加一些偏移量
+            # Write the index name of the rectangle in the upper left corner inside the rectangle, add some offsets
             text_x = fitz_rect.x0 + 2
             text_y = fitz_rect.y0 + 10
             text_rect = fitz.Rect(text_x, text_y - 9, text_x + 80, text_y + 2)
-            # 绘制白色背景矩形
+            # Draw white background rectangle
             page.draw_rect(text_rect, color=(1, 1, 1), fill=(1, 1, 1))
-            # 插入带有白色背景的文字
+            # Insert text with a white background
             page.insert_text((text_x, text_y), name, fontsize=10, color=(1, 0, 0))
         page_image_with_rects = page.get_pixmap(matrix=fitz.Matrix(3, 3))
         page_image = os.path.join(output_dir, f'{page_index}.png')
@@ -230,7 +230,7 @@ def _gpt_parse_images(
         for future in concurrent.futures.as_completed(futures):
             index, content = future.result()
 
-            # 在某些情况下大模型还是会输出 ```latex ```字符串
+            # In some cases the big model will still output the ``latex `` string.
             if '```latex' in content:
                 content = content.replace('```latex\n', '')
                 last_backticks_pos = content.rfind('```')
