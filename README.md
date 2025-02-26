@@ -1,9 +1,4 @@
-# gptpdf
-
-<p align="center">
-<a href="README_CN.md"><img src="https://img.shields.io/badge/文档-中文版-blue.svg" alt="CN doc"></a>
-<a href="README.md"><img src="https://img.shields.io/badge/document-English-blue.svg" alt="EN doc"></a>
-</p>
+# gptpdf-LaTeX
 
 This is a fork of the [gptpdf](https://github.com/CosmosShadow/gptpdf) repository. Instead of using markdown, the LLM will output LaTeX code.
 Using VLLM (like GPT-4o) to parse PDF into markdown.
@@ -27,23 +22,6 @@ This package use [GeneralAgent](https://github.com/CosmosShadow/GeneralAgent) li
 2. Use a large visual model (such as GPT-4o) to parse and get a markdown file.
 
 
-
-## DEMO
-
-1. [examples/attention_is_all_you_need/output.md](examples/attention_is_all_you_need/output.md) for PDF [examples/attention_is_all_you_need.pdf](examples/attention_is_all_you_need.pdf).
-
-
-2. [examples/rh/output.md](examples/rh/output.md) for PDF [examples/rh.pdf](examples/rh.pdf).
-
-
-## Installation
-
-```bash
-pip install gptpdf
-```
-
-
-
 ## Usage
 
 ### Local Usage
@@ -55,15 +33,7 @@ content, image_paths = parse_pdf(pdf_path, api_key=api_key)
 print(content)
 ```
 
-See more in [test/test.py](test/test.py)
-
-
-
-### Google Colab
-
-see [examples/gptpdf_Quick_Tour.ipynb](examples/gptpdf_Quick_Tour.ipynb)
-
-
+See more in [examples/PDF_to_LaTeX.py](examples/PDF_to_LaTeX.py)
 
 
 ## API
@@ -147,15 +117,3 @@ content, image_paths = parse_pdf(
 
 
 **args**: LLM other parameters, such as `temperature`, `top_p`, `max_tokens`, `presence_penalty`, `frequency_penalty`, etc.
-
-
-
-
-
-## Join Us 👏🏻
-
-Scan the QR code below with WeChat to join our group chat or contribute.
-
-<p align="center">
-<img src="./docs/wechat.jpg" alt="wechat" width=400/>
-</p>
