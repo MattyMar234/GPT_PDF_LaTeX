@@ -1,6 +1,8 @@
 test/.env
 gp/*
 *.pyc
+*.pdf
+*.tex
 dist/*
 .idea
 venv
