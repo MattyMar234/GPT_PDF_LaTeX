@@ -20,6 +20,12 @@ import argparse
 import os
 
 
+class ollamaIntarface:
+    
+    def __init__(self, host: str = "localhost", port: int = "8888") -> None:
+        pass
+
+
 PDF_PATH = "/app/inputs/ACbasics.pdf"
 OUTPUT = "./outputs/ACbasics.tex"
 URL = 'http://192.168.1.150:11434/api/chat'
