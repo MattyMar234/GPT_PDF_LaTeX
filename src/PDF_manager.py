@@ -29,8 +29,12 @@ class PDF_Manager:
     def __init__(self, outputFolder: str) -> None:
         self._outputFolder:str = outputFolder
         
+        
+    def split_PDF(self) -> None:
+        pass
+        
       
-    def merge_pdfs(self, file_list: List[str], output_path: str | None = None) -> None:
+    def merge_PDFs(self, file_list: List[str], output_path: str | None = None) -> None:
         merger = PyPDF2.PdfMerger()
         outname_default = "merged.pdf"
         
