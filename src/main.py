@@ -1,6 +1,4 @@
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_core.documents.base import Document
-import ollama
+
 
 #====================================================================#
 #utile per operazioni di base come unire, dividere ed estrarre testo
@@ -18,40 +16,26 @@ from typing import List
 import requests
 import argparse
 import os
+import logging
 
 
-class ollamaIntarface:
-    
-    def __init__(self, host: str = "localhost", port: int = "8888") -> None:
-        pass
+
+OUTPUT = os.path.join(os.path.split(os.getcwd())[0])
+
+# PDF_PATH = "/app/inputs/ACbasics.pdf"
+# OUTPUT = "./outputs/ACbasics.tex"
+# URL = 'http://192.168.1.150:11434/api/chat'
 
 
-PDF_PATH = "/app/inputs/ACbasics.pdf"
-OUTPUT = "./outputs/ACbasics.tex"
-URL = 'http://192.168.1.150:11434/api/chat'
 
-client = ollama.Client(host='http://192.168.1.150:11434')
+
 
 class MODEL(Enum):
     LLAMA32 = "llama3.2"
     LLAMA32B1 = "llama3.2:b1"
     DEEPSEEKR1_14B  = "deepseek-r1:14b"
     
-class OPERATION(Enum):
-    CLEAR = "clear"
-    MERGE = "merge"
-    LATEX = "latex"
-    
-    @classmethod
-    def avaialableOption(cls) -> List[str]:
-        return list(map(lambda c: c.value, cls))
-    
-    @classmethod
-    def toName(cls, value: str):
-        for i in cls:
-            if i.value == value:
-                return i
-        return None
+
             
 
 
@@ -297,26 +281,7 @@ def main2() -> None:
         print(f"{'*'*20}Processando pagina {i+1}{'*'*20}") 
         proccessPage(doc)
 
-def merge_pdfs(file_list: List[str], output_path: str | None = None) -> None:
-    merger = PyPDF2.PdfMerger()
-    outname_default = "merged.pdf"
-    
-    for i, file in enumerate(file_list):
-        print(f"[{i + 1}/{len(file_list)}] - processing: {file}")
-        merger.append(file)
-    
-    
-    if output_path == None or output_path == "":
-        output_path = os.path.join(os.getcwd(), outname_default)
-        
-    elif os.path.isdir(output_path):
-        output_path = os.path.join(output_path, outname_default)
-    
-    print("scrittura del file...")
-    merger.write(output_path)
-    merger.close()
-    
-    print(f"PDF unito salvato in: {output_path}")
+
  
  
 def remove_annotations(file_list: List[str], output_path: str | None = None) -> None:

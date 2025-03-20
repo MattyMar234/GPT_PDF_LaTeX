@@ -13,7 +13,7 @@
     // "dockerComposeFile": ["../docker-compose.yml"],
     // "service": "dev",  // Nome del servizio Dev nel docker-compose.yml
     "workspaceFolder": "/app",
-    "runArgs": ["--gpus", "all", "--shm-size=1g", "--network=host"],
+    "runArgs": ["--network=host"],
     "postCreateCommand": "pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt",
     
 
