@@ -395,6 +395,10 @@ def main() -> None:
     parser.add_argument("--model", choices=OllamaInterface.MODELS.avaialableOption(), type=str, help="Modello da utilizzare")
     parser.add_argument("--output", help="Percorso del file di output (predefinito: merged.pdf).")
     parser.add_argument("--pageindex", nargs="+", type=int)
+    parser.add_argument("--ollama_timeout", type=int, default=40)
+    parser.add_argument("--ollama_host", type=str, default="localhost")
+    parser.add_argument("--ollama_port", type=int, default=11434)
+    
     
     args = parser.parse_args()
     
@@ -450,5 +454,6 @@ def main() -> None:
     
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format='[%(asctime)s] - [%(levelname)s]: %(message)s')
     main()
 

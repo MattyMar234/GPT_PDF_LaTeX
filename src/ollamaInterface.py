@@ -16,6 +16,7 @@ class OllamaInterface:
         DEEPSEEKR1_14B = {"model":"deepseek-r1:14b", "image" : False}
         GEMMA3_12B = {"model":"gemma3:12b", "image" : False}
         LLAVA_7B = {"model":"llava:7b", "image" : True}
+        LAVA_13B = {"model":"llava:13b", "image" : True}
         
         @classmethod
         def avaialableOption(cls) -> List[str]:
