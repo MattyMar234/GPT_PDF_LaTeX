@@ -455,5 +455,10 @@ def main() -> None:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='[%(asctime)s] - [%(levelname)s]: %(message)s')
+    
+    #from LLM_Interface.geminiInterface import GoogleGeminiInterface
+    
+    # modelInterface = GoogleGeminiInterface(GoogleGeminiInterface.MODELS.GEMINI_2_FLASH)
+    # modelInterface.chat(prompt="Explain how AI works in a few words")
     main()
 

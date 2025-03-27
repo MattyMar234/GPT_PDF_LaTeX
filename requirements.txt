@@ -1,7 +1,9 @@
-ollama
 PyPDF2
 pdf2image
 #fitz
 pdfplumber
 frontend
 pymupdf
+pillow
+ollama
+google-generativeai
