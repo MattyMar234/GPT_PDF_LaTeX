@@ -1,5 +1,3 @@
-from google.generativeai.types import GenerateContentResponse
-
 from typing import Final, List, Tuple
 from datetime import datetime
 from enum import Enum
@@ -10,17 +8,16 @@ import time
 import os
 import io
 import re
-
 import PyPDF2
 import fitz
 import httpx
 
-
-from ollamaInterface import OllamaInterface
+from LLM_Interface.ollamaInterface import OllamaInterface
 from LLM_Interface.interfaceBase import LLMInterfaceBase
 from LLM_Interface.geminiInterface import GoogleGeminiInterface
     
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from queue import Queue
 
 
 DEFAULT_PROMPT: Final[str] = """Using LaTeX syntax, convert the text recognised in the image into LaTeX format for output. You must do:
@@ -31,14 +28,15 @@ Again, do not interpret text that is not relevant to the output, and output the 
 In each page you could possibly find a title, so use section or subsection etc.
 """
 
-DEFAULT_PROMPT_v2: Final[str] = """Using LaTeX syntax, convert the text recognised in the image into LaTeX format for output. You must do:
-1. the output must be in italian language.
-2. don't interpret the text which is not related to the output, and output the content in the image directly. For example, it is strictly forbidden to output examples like ``Here is the LaTeX text I generated based on the content of the image:'' Instead, you should output LaTeX code directly.
-3. Content should not be included in ```latex ```, paragraph formulas should be in the form of $$ $$, in-line formulas should be in the form of $ $, long straight lines should be ignored, and page numbers should be ignored.
-4. avoid Unicode character and special characters, but use latex commands.
-Again, do not interpret text that is not relevant to the output, and output the content in the image directly.
-In each page you could possibly find a title, so use section or subsection etc.
-"""
+DEFAULT_PROMPT_v2: Final[str] = """Usando la sintassi LaTeX, converti il testo riconosciuto nell'immagine in formato LaTeX per l'output. Devi fare quanto segue:  
+1. L'output deve essere in lingua italiana.  
+2. Non interpretare il testo che non è pertinente all'output e restituisci direttamente il contenuto presente nell'immagine. Ad esempio, è severamente vietato fornire introduzioni come ``Ecco il testo LaTeX che ho generato in base al contenuto dell'immagine:''; invece, devi restituire direttamente il codice LaTeX.  
+3. Il contenuto non deve essere incluso tra ```latex ```, le formule nei paragrafi devono essere scritte nella forma $$ $$, le formule in linea nella forma $ $; le linee lunghe devono essere ignorate, così come i numeri di pagina.  
+4. Evita caratteri Unicode e caratteri speciali, utilizzando invece i comandi LaTeX.  
+5. Il contenuto latex deve essere dentro ad un blocco di codice.
+Ancora una volta, non interpretare il testo che non è pertinente all'output e restituisci direttamente il contenuto dell'immagine.  
+In ogni pagina potresti trovare un titolo, quindi utilizza `\section` o `\subsection`, ecc."""  
+
 
 DEFAULT_RECT_PROMPT: Final[str] = """Areas are marked in the image with a red box and a name (%s) DO NOT CHANGE THE %s. If the regions are tables or images, use 
 \\begin{center}
@@ -75,6 +73,7 @@ LATEX_DOCUMENT_DATA: Final[str] = r"""
 \usetikzlibrary{trees}
 \usepackage{amsmath}
 \usepackage{amssymb}
+
 """
 
 
@@ -102,8 +101,8 @@ class PDF_Manager:
         self._outputFolder:str = outputFolder
         
         
-    def _isModelDecleared(self, model: OllamaInterface.MODELS | None) -> bool:
-        if model is None:
+    def _isModelInterfaceDecleared(self, model_Interface: LLMInterfaceBase | None) -> bool:
+        if model_Interface is None:
             print("Errore: Per questa operazione è neccessario specificare un modello.")
             print(f"I modelli disponibili sono: {OllamaInterface.MODELS.avaialableOption()}")
             print("Operazione annullata")
@@ -111,7 +110,7 @@ class PDF_Manager:
         return True
         
         
-    def doOperation(self, operation: OPERATION, inputFils: List[str], model: OllamaInterface.MODELS | None = None) -> bool:
+    def doOperation(self, operation: OPERATION, inputFils: List[str], model_Interface: LLMInterfaceBase | None = None) -> bool:
         match operation:
             case PDF_Manager.OPERATION.CLEAR:
                 pass
@@ -120,11 +119,8 @@ class PDF_Manager:
                 self._merge_PDFs(inputFils, self._outputFolder)
             
             case PDF_Manager.OPERATION.LATEX:
-                if not self._isModelDecleared(model): return False
-                
-                modelInterface:LLMInterfaceBase = GoogleGeminiInterface(GoogleGeminiInterface.MODELS.GEMINI_2_FLASH)
-                
-                self._toLatex(inputFils, modelInterface)
+                if not self._isModelInterfaceDecleared(model_Interface): return False
+                self._toLatex(inputFils, model_Interface)
             
             case _ :
                 raise Exception(f"Operazione '{operation}' non implementata")
@@ -182,18 +178,19 @@ class PDF_Manager:
             if not os.path.exists(imgFolder):
                 os.makedirs(imgFolder)
         
-            logging.info(f"{'-'*60}\nProcessando file [{i + 1}/{len(inputFils)}]: {PDF_PATH}")
+            logging.info(f"{'-'*60}")
+            logging.info("Processando file [{i + 1}/{len(inputFils)}]: {PDF_PATH}")
+            logging.info(f"{'-'*60}")
         
             reader: PyPDF2.PdfReader = PyPDF2.PdfReader(PDF_PATH)
             metadata = reader.metadata
             page_number = len(reader.pages)
         
-            logging.info(f"Lettura del file {PDF_PATH}")
             logging.info("Metadati del PDF:")
             logging.info(f"- Titolo: {metadata.title}")
             logging.info(f"- Autore: {metadata.author}")
             logging.info(f"- Numero di pagine: {page_number}")
-           
+            logging.info(f"{'-'*60}")
             
             #Clear
             with open(os.path.join(targetFolder, texFIle), mode='w') as outputStream:

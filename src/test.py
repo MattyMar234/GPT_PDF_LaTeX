@@ -1,8 +1,4 @@
 
-
-
-
-API = "AIzaSyDvDFuAeeixpHlwyoKX5vO8g6C11xwPAwg"
     
     
     

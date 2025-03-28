@@ -7,35 +7,22 @@ import ollama
 import traceback
 import logging
 
+from LLM_Interface.interfaceBase import LLMInterfaceBase, MODEL_INFO
 
-class OllamaInterface:
+
+class OllamaInterface(LLMInterfaceBase):
     
-    class MODELS(Enum):
-        LLAMA32 = {"model": "llama3.2", "image" : False}
-        LLAMA32B1 = {"model":"llama3.2:b1", "image" : False}
-        DEEPSEEKR1_14B = {"model":"deepseek-r1:14b", "image" : False}
-        GEMMA3_12B = {"model":"gemma3:12b", "image" : False}
-        LLAVA_7B = {"model":"llava:7b", "image" : True}
-        LAVA_13B = {"model":"llava:13b", "image" : True}
-        
-        @classmethod
-        def avaialableOption(cls) -> List[str]:
-            return list(map(lambda c: c.value["model"], cls))
-        
-        @classmethod
-        def toName(cls, value: str):
-            for i in cls:
-                if i.value["model"] == value:
-                    return i
-            return None
-    
-    
+
     _URL = "http://[IP]:[PORT]/api/chat"
     
-    def __init__(self, model: MODELS, host: str = "localhost", port: int = "11434", timeout_s: int = 1) -> None:
+    def __init__(self, model: LLMInterfaceBase.Models, host: str = "localhost", port: int | str = 11434, timeout_s: int = 1) -> None:
+        assert isinstance(host, str)
+        assert isinstance(port, str) or isinstance(port, int)
+        assert isinstance(timeout_s, int)
+        
         #self._url = f"http://{host}:{port}/api/chat"
         self._client: ollama.Client =  ollama.Client(host=f"http://{host}:{port}", timeout = timeout_s)
-        self._model: OllamaInterface.MODELS = model
+        self._model: OllamaInterface.MODELS = model.value[MODEL_INFO.MODEL_TYPE]
         self._role: str = ""
     
         

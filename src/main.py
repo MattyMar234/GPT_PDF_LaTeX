@@ -3,7 +3,8 @@
 from AppData import *
 import AppData
 from PDF_manager import PDF_Manager
-from ollamaInterface import OllamaInterface
+from LLM_Interface.interfaceBase import LLMInterfaceBase
+from LLM_Interface.InterfaceFactory import LLM_InterfaceFactory
 
 # #====================================================================#
 # #utile per operazioni di base come unire, dividere ed estrarre testo
@@ -387,12 +388,13 @@ def main() -> None:
     
     files: List[str] = []
     operation: PDF_Manager.OPERATION | None = None
-    model: OllamaInterface.MODELS | None = None
+    LLM_Interface: LLMInterfaceBase | None = None
     
+  
     parser = argparse.ArgumentParser()
     parser.add_argument("--operation", choices=PDF_Manager.OPERATION.avaialableOption(), help="Operazione da eseguire")
     parser.add_argument("--files", nargs="+", help="Lista di file o cartelle contenenti PDF")
-    parser.add_argument("--model", choices=OllamaInterface.MODELS.avaialableOption(), type=str, help="Modello da utilizzare")
+    parser.add_argument("--model", choices=LLMInterfaceBase.Models.avaialableOption(), type=str, help="Modello da utilizzare")
     parser.add_argument("--output", help="Percorso del file di output (predefinito: merged.pdf).")
     parser.add_argument("--pageindex", nargs="+", type=int)
     parser.add_argument("--ollama_timeout", type=int, default=40)
@@ -423,30 +425,21 @@ def main() -> None:
         return
     
     if args.model:
-        model = OllamaInterface.MODELS.toName(args.model)
-        if model is None:
+        LLM_Interface = LLM_InterfaceFactory.makeInterface(
+            LLMInterfaceBase.modelName2Enum(args.model),
+            ollama_timeout = args.ollama_timeout,
+            ollama_host = args.ollama_host,
+            ollama_port = args.ollama_port
+        )
+        
+        if LLM_Interface is None:
             print(f"Errore: Modello '{args.model}' non trovato ")
     
     
     pdfManager = PDF_Manager(AppData.OUTPUT_FOLDER)
-    pdfManager.doOperation(operation=operation, inputFils=files, model=model)
+    pdfManager.doOperation(operation=operation, inputFils=files, model_Interface=LLM_Interface)
     
-    
-    # match OPERATION.toName(args.operation):
-        
-    #     case OPERATION.MERGE:
-    #         merge_pdfs(files, args.output)
-            
-    #     case OPERATION.LATEX:
-    #         pass
-        
-    #     case OPERATION.CLEAR:
-    #         remove_annotations(files, args.output)
-        
-    #     case _ :
-    #         print(f"Errore: Operazione '{args.operation}' non supportata.")
-                
-                
+
     
     
     
