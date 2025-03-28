@@ -86,6 +86,7 @@ class PDF_Manager:
         CLEAR = "clear"
         MERGE = "merge"
         LATEX = "latex"
+        IMG_EXTRACT = "getimages"
     
         @classmethod
         def avaialableOption(cls) -> List[str]:
@@ -123,6 +124,9 @@ class PDF_Manager:
                 if not self._isModelInterfaceDecleared(model_Interface): return False
                 self._toLatex(inputFils, model_Interface)
             
+            case PDF_Manager.OPERATION.IMG_EXTRACT:
+                self._extractImages(inputFils, self._outputFolder)
+            
             case _ :
                 raise Exception(f"Operazione '{operation}' non implementata")
                 
@@ -131,14 +135,47 @@ class PDF_Manager:
         
     def split_PDF(self) -> None:
         pass
-        
+    
+    
+    def _extractImages(self, file_list: List[str], output_path: str | None = None) -> None:
+        for i, file in enumerate(file_list):
+            logging.info('-'*60)
+            logging.info(f"[{i + 1}/{len(file_list)}] - processing: {file}")
+            logging.info('-'*60)
+            
+            fileName = os.path.split(file)[1].split('.')[0]
+            targetFolder = os.path.join(self._outputFolder, f"{fileName}_PDF_images")
+            image_index: int = 0
+      
+            os.makedirs(targetFolder, exist_ok=True)
+            doc = fitz.open(file)
+            pageCount: int = len(doc)
+            
+            for page_num, page in enumerate(doc):
+                logging.info(f"processando pagina [{page_num+1}/{pageCount}]")
+                #img_count: int = page.get_images(full=True)
+                
+                for img_index, img in enumerate(page.get_images(full=True)):
+                    #logging.info(f"Image [{img_index+1}/{img_count}]")
+                    
+                    xref = img[0]
+                    base_image = doc.extract_image(xref)
+                    image_bytes = base_image["image"]
+                    image_ext = base_image["ext"]
+                    img_path = os.path.join(targetFolder, f"{image_index}.{image_ext}")
+                    
+                    with open(img_path, "wb") as img_file:
+                        img_file.write(image_bytes)
+      
+                    logging.info(f"Image saved in: {img_path}")
+                    image_index += 1
       
     def _merge_PDFs(self, file_list: List[str], output_path: str | None = None) -> None:
         merger = PyPDF2.PdfMerger()
         outname_default = "merged.pdf"
         
         for i, file in enumerate(file_list):
-            print(f"[{i + 1}/{len(file_list)}] - processing: {file}")
+            logging.info(f"[{i + 1}/{len(file_list)}] - processing: {file}")
             merger.append(file)
         
         
