@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
 from enum import auto, Enum
+import logging
+import threading
+import time
 from typing import Any, List
 
 import PIL
@@ -12,13 +15,22 @@ class MODEL_INFO(Enum):
     MAX_TOKEN = auto()
     FILE = auto()
     SERVICE = auto()
-
+    RPM = auto()
+    RPD = auto()
 
 class LLMInterfaceBase(ABC):
     
     class Models(Enum):
         
-        GEMINI_2_FLASH = {MODEL_INFO.SERVICE: "google", MODEL_INFO.MODEL_TYPE: "gemini-2.0-flash", MODEL_INFO.IMAGE : False, MODEL_INFO.FILE : True, MODEL_INFO.MAX_TOKEN : 1048576}
+        GEMINI_2_FLASH = {
+            MODEL_INFO.SERVICE: "google", 
+            MODEL_INFO.MODEL_TYPE: "gemini-2.0-flash", 
+            MODEL_INFO.IMAGE : False, 
+            MODEL_INFO.FILE : True, 
+            MODEL_INFO.RPM : 15,
+            MODEL_INFO.RPD : 1500,
+            MODEL_INFO.MAX_TOKEN : 1048576
+        }
         
         LLAMA32         = {MODEL_INFO.SERVICE: "ollama", MODEL_INFO.MODEL_TYPE: "llama3.2",       MODEL_INFO.IMAGE : False}
         LLAMA32B1       = {MODEL_INFO.SERVICE: "ollama", MODEL_INFO.MODEL_TYPE:"llama3.2:b1",     MODEL_INFO.IMAGE : False}
@@ -39,8 +51,19 @@ class LLMInterfaceBase(ABC):
             return None
     
   
-    def __init__(self):
-        pass
+    def __init__(self, modelType: Models):
+        assert isinstance(modelType, LLMInterfaceBase.Models)
+        self._selectedModel = modelType
+    
+    def sleepFor_RPM(self, workerNumber: int = 1) -> None:
+        value_RPM = self._selectedModel.value.get(MODEL_INFO.RPM) 
+        
+        if value_RPM is None: return
+        if workerNumber <= 0: workerNumber = 1
+        
+        sleep_value = (60/value_RPM)*workerNumber + 0.5
+        logging.info(f"thread {threading.get_ident()} spleeping for {sleep_value:0.3f} s for RPM limit")
+        time.sleep(sleep_value)
     
     def modelName2Enum(name: str) -> Models | None:    
         return LLMInterfaceBase.Models.toEnum(name)

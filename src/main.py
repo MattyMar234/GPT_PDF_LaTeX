@@ -435,10 +435,13 @@ def main() -> None:
         if LLM_Interface is None:
             print(f"Errore: Modello '{args.model}' non trovato ")
     
+    logging.info("files selected:")
+    for f in files:
+        logging.info(f"- {f}")
     
     pdfManager = PDF_Manager(AppData.OUTPUT_FOLDER)
     pdfManager.doOperation(operation=operation, inputFils=files, model_Interface=LLM_Interface)
-    
+    #LLM_Interface.sleepFor_RPM()
 
     
     
@@ -448,10 +451,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='[%(asctime)s] - [%(levelname)s]: %(message)s')
-    
-    #from LLM_Interface.geminiInterface import GoogleGeminiInterface
-    
-    # modelInterface = GoogleGeminiInterface(GoogleGeminiInterface.MODELS.GEMINI_2_FLASH)
-    # modelInterface.chat(prompt="Explain how AI works in a few words")
     main()
 

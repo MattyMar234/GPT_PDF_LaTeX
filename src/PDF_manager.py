@@ -15,6 +15,7 @@ import httpx
 from LLM_Interface.ollamaInterface import OllamaInterface
 from LLM_Interface.interfaceBase import LLMInterfaceBase
 from LLM_Interface.geminiInterface import GoogleGeminiInterface
+from google.generativeai.types import GenerateContentResponse
     
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from queue import Queue
@@ -28,14 +29,14 @@ Again, do not interpret text that is not relevant to the output, and output the 
 In each page you could possibly find a title, so use section or subsection etc.
 """
 
-DEFAULT_PROMPT_v2: Final[str] = """Usando la sintassi LaTeX, converti il testo riconosciuto nell'immagine in formato LaTeX per l'output. Devi fare quanto segue:  
+DEFAULT_PROMPT_v2: Final[str] = """Usando la sintassi LaTeX, converti il testo riconosciuto nell'immagine in formato LaTeX per l'output. Devi fare quanto segue:
 1. L'output deve essere in lingua italiana.  
 2. Non interpretare il testo che non è pertinente all'output e restituisci direttamente il contenuto presente nell'immagine. Ad esempio, è severamente vietato fornire introduzioni come ``Ecco il testo LaTeX che ho generato in base al contenuto dell'immagine:''; invece, devi restituire direttamente il codice LaTeX.  
 3. Il contenuto non deve essere incluso tra ```latex ```, le formule nei paragrafi devono essere scritte nella forma $$ $$, le formule in linea nella forma $ $; le linee lunghe devono essere ignorate, così come i numeri di pagina.  
 4. Evita caratteri Unicode e caratteri speciali, utilizzando invece i comandi LaTeX.  
 5. Il contenuto latex deve essere dentro ad un blocco di codice.
 Ancora una volta, non interpretare il testo che non è pertinente all'output e restituisci direttamente il contenuto dell'immagine.  
-In ogni pagina potresti trovare un titolo, quindi utilizza `\section` o `\subsection`, ecc."""  
+In ogni pagina potresti trovare un titolo, quindi utilizza `\\section` o `\\subsection`, ecc. Il testo risultante deve essere in lingua italiana, quindi traducilo per la lingua italiana."""  
 
 
 DEFAULT_RECT_PROMPT: Final[str] = """Areas are marked in the image with a red box and a name (%s) DO NOT CHANGE THE %s. If the regions are tables or images, use 
@@ -158,19 +159,79 @@ class PDF_Manager:
             logging.info(f"Merging fallied")
             
             
-    def _toLatex(self, inputFils: List[str], modelInterface:LLMInterfaceBase) -> None:
+    def _toLatex(self, inputFils: List[str], modelInterface:LLMInterfaceBase, num_threads: int = 1) -> None:
         global DEFAULT_PROMPT_v2
         global LATEX_DOCUMENT_DATA
         
         IMG_FOLDER_NAME = "images"
+      
         
-        #ollama = OllamaInterface(model=model, host= "192.168.1.200", timeout_s=40)
+        LaTex_Elements_toReplace = {
+            r"\\maketitle" : "",
+            r"\\title{(.*?)}" : "",
+            r"\\title\*{(.*?)}" : "",
+            r"\\author{(.*?)}" : "",
+            r"\\date{(.*?)}" : "",
+            r"\\begin{document}" : "",
+            r"\\end{document}" : "",
+            r"section\*" : "section",
+            r"\\documentclass{(.*?)}" : "",
+            r"\\usepackage{(.*?)}" : "",
+            r"\\usepackage{(.*?)}\[(.*?)\]" : "",
+            r"\\usepackage\[(.*?)\]{(.*?)}" : "",
+            '\n': '\n\t'
+        }
         
+        def process_page(page, j, outputStream):
+            logging.info(f"processando pagina [{j+1}/{len(doc)}]")
+            pix = page.get_pixmap(matrix=fitz.Matrix(3, 3))
+            image_bytes = io.BytesIO(pix.tobytes("png"))
+            image = Image.open(image_bytes)
+            response: dict | GenerateContentResponse | None = None
+            failure_count = 0
+            text: str = ""
+            
+            try:
+                while True:
+                    response = modelInterface.chat(prompt=DEFAULT_PROMPT_v2, image=image)
+                    text = response.text if isinstance(response, GenerateContentResponse) else response["message"]["content"]
+                
+                    if text.find("```latex") != -1: break
+                    
+                    logging.warning(f"non è stato trovato ```latex``` nel documento. Tentativo numero {failure_count}")
+                    failure_count += 1
+                    
+                    if failure_count >= 5:
+                        raise Exception("Non è stato trovato ```latex``` nel documento")
+                
+            except Exception as e:
+                #SALTO LA PAGINA
+                p1 = "\n\t\\begin{center}\\Large{\\textbf{"
+                p2 = f"[MISSING PAGE {j + 1}]"
+                p3 = "}}\\end{center}\n"
+                outputStream.write(f"{p1}{p2}{p3}") 
+                logging.error(e)
+                return
+            
+            finally:
+                modelInterface.sleepFor_RPM(workerNumber=num_threads)
+                
+            latex = text.split("```latex")[1].split("```")[0]
+            match = re.search(r"\\begin{document}(.*?)\\end{document}", latex, re.DOTALL)
+            
+            if match: latex = match.group(1).strip()
+            for key_pattern in LaTex_Elements_toReplace.keys():
+                latex = re.sub(pattern = key_pattern, repl=LaTex_Elements_toReplace[key_pattern], string=latex)
+                
+            outputStream.write(latex) 
+        
+
         for i, PDF_PATH in enumerate(inputFils):
             fileName = os.path.split(PDF_PATH)[1].split('.')[0]
             texFIle = f"{fileName}.tex"
             targetFolder = os.path.join(self._outputFolder, f"{fileName}-LaTex")
             imgFolder = os.path.join(targetFolder, IMG_FOLDER_NAME)
+            targetFile = os.path.join(targetFolder, texFIle)
             
             if not os.path.exists(targetFolder):
                 os.makedirs(targetFolder)
@@ -179,7 +240,7 @@ class PDF_Manager:
                 os.makedirs(imgFolder)
         
             logging.info(f"{'-'*60}")
-            logging.info("Processando file [{i + 1}/{len(inputFils)}]: {PDF_PATH}")
+            logging.info(f"Processando file [{i + 1}/{len(inputFils)}]: {PDF_PATH}")
             logging.info(f"{'-'*60}")
         
             reader: PyPDF2.PdfReader = PyPDF2.PdfReader(PDF_PATH)
@@ -192,105 +253,21 @@ class PDF_Manager:
             logging.info(f"- Numero di pagine: {page_number}")
             logging.info(f"{'-'*60}")
             
+        
             #Clear
-            with open(os.path.join(targetFolder, texFIle), mode='w') as outputStream:
-                outputStream.write("")
+            with open(targetFile, mode='w') as outputStream:
+                outputStream.write(LATEX_DOCUMENT_DATA + "\n\\begin{document}\n")
+         
+            doc = fitz.open(PDF_PATH)
+            
+        
+            with ThreadPoolExecutor(max_workers=num_threads) as executor, open(targetFile, mode='a') as outputStream:
+                futures = {executor.submit(process_page, page, j, outputStream): j for j, page in enumerate(doc)}
+                for future in as_completed(futures):
+                    future.result()  # Attende il completamento della pagina
+                    outputStream.flush() 
         
             with open(os.path.join(targetFolder, texFIle), mode='a') as outputStream:
-                #if model.value["image"]:
-                doc = fitz.open(PDF_PATH)
-                
-                outputStream.write(LATEX_DOCUMENT_DATA)
-                outputStream.write("\\begin{document}\n")
-                
-                for j, page in enumerate(doc):
-                    logging.info(f"processando pagina [{j+1}/{len(doc)}]")
-                    pix = page.get_pixmap(matrix=fitz.Matrix(3, 3))
-                    
-                    # Converti l'immagine in BytesIO (senza salvarla su disco)
-                    image_bytes = io.BytesIO(pix.tobytes("png"))
-                    image = Image.open(image_bytes)
-                    
-                    # with open(os.path.join(targetFolder, "pagina1.png"), "wb") as f:
-                    #     f.write(image_bytes.getvalue())
-                    # return
-                
-                    # Codifica l'immagine in Base64 per Ollama
-                    #image_base64 = base64.b64encode(image_bytes.getvalue()).decode("utf-8")
-                    #prompt = "Converti questa imamgine in Latex. Utilizza un blocco di codice."
-                    failure_count = 0
-        
-                    try:
-                        while True:
-                            #response = ollama.chat(content=DEFAULT_PROMPT_v2, image_base64=image_base64)
-                            msg: str = ""
-                            response = modelInterface.chat(prompt=DEFAULT_PROMPT_v2, image=image)
-                            
-                            if isinstance(response, GenerateContentResponse):
-                                msg = response.text
-                                
-                            elif isinstance(response, dict):
-                                msg = response["message"]["content"]
-                        
-                            if msg.find("```latex") != -1:
-                                break
-                            
-                            if failure_count:
-                                print()
-                            
-                            print(f"non è stato trovato ```latex``` nel documento. Tentativo numero {failure_count}")
-                            failure_count += 1
-                            
-                            if failure_count >= 5:
-                                raise Exception("Non è stato trovato ```latex``` nel documento")
-                    
-                    except Exception as e:
-                        #SALTO LA PAGINA
-                        if isinstance(e, httpx.ReadTimeout):
-                            p1 = "\n\t\\begin{center}\\Large{\\textbf{"
-                            p2 = f"[MISSING PAGE {j + 1}]"
-                            p3 = "}}\\end{center}\n"
-                            outputStream.write(f"{p1}{p2}{p3}") 
-                            logging.error("TimeOut")
-                            continue
-                        
-                        logging.error(e)
-                        return
-                                    
-                    
-                    latex = msg.split("```latex")[1].split("```")[0]
-                    
-                    match = re.search(r"\\begin{document}(.*?)\\end{document}", latex, re.DOTALL)
-                    
-                    if match:
-                        latex = match.group(1).strip()
-                    
-                    toReplace = {
-                        r"\\maketitle" : "",
-                        r"\\title{(.*?)}" : "",
-                        r"\\title\*{(.*?)}" : "",
-                        r"\\author{(.*?)}" : "",
-                        r"\\date{(.*?)}" : "",
-                        r"\\begin{document}" : "",
-                        r"\\end{document}" : "",
-                        r"section\*" : "section",
-                        r"\\documentclass{(.*?)}" : "",
-                        r"\\usepackage{(.*?)}" : "",
-                        r"\\usepackage{(.*?)}\[(.*?)\]" : "",
-                        r"\\usepackage\[(.*?)\]{(.*?)}" : "",
-                        '\n': '\n\t'
-                    }
-                                            
-                    for key_pattern in toReplace.keys():
-                        latex = re.sub(pattern = key_pattern, repl=toReplace[key_pattern], string=latex)
-                        
-                    #latex = latex.replace('\n', '\n\t')
-                        
-                    # documentBody:str = match.group(1).strip() if match else latex
-                    # documentBody = documentBody.replace("\\maketitle", '')
-                    outputStream.write(latex) 
-                    outputStream.flush() 
-                
                 outputStream.write("\n\\end{document}\n")
                 outputStream.flush() 
                     

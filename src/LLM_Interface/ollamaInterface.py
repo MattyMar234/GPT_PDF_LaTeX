@@ -1,7 +1,10 @@
+import base64
 from enum import Enum
+import io
 from typing import List
 # from langchain_community.document_loaders import PyPDFLoader
 # from langchain_core.documents.base import Document
+import PIL
 import httpx
 import ollama
 import traceback
@@ -20,6 +23,8 @@ class OllamaInterface(LLMInterfaceBase):
         assert isinstance(port, str) or isinstance(port, int)
         assert isinstance(timeout_s, int)
         
+        super().__init__(model)
+        
         #self._url = f"http://{host}:{port}/api/chat"
         self._client: ollama.Client =  ollama.Client(host=f"http://{host}:{port}", timeout = timeout_s)
         self._model: OllamaInterface.MODELS = model.value[MODEL_INFO.MODEL_TYPE]
@@ -34,12 +39,15 @@ class OllamaInterface(LLMInterfaceBase):
         self._role = value
     
 
-    def chat(self, content: str, image_base64: str | List[str] | None = None) -> dict:
+    def chat(self, prompt: str, image: PIL.Image.Image | None = None, stream: bool=False) -> dict | None:
         
         
         # with open("immagine.jpg", "rb") as f:
         #     image_base64 = base64.b64encode(f.read()).decode("utf-8")
         
+        buffer = io.BytesIO()
+        image.save(buffer, format="PNG")
+        image_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
         
         try:
             response = None
@@ -47,7 +55,7 @@ class OllamaInterface(LLMInterfaceBase):
             messageDict = {
                 #"role" : f"{self._role}",
                 "role": "user",
-                "content": f"{content}"
+                "content": f"{prompt}"
             }
             
             if image_base64 is not None:
@@ -59,7 +67,7 @@ class OllamaInterface(LLMInterfaceBase):
             
             
             response: ollama.ChatResponse = self._client.chat(
-                model = f"{self._model.value["model"]}",
+                model = f"{self._model}",
                 messages = [messageDict]
             )
             
@@ -70,6 +78,7 @@ class OllamaInterface(LLMInterfaceBase):
         except ConnectionError as e:
             logging.error(e)
             print("Server Ollama non trovato")
+            return None
         
             
         except Exception as e:

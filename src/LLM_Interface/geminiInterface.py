@@ -21,9 +21,7 @@ genai.configure(api_key=API)
 class GoogleGeminiInterface(LLMInterfaceBase):
      
     def __init__(self, modelType: LLMInterfaceBase.Models) -> None:
-        assert isinstance(modelType, LLMInterfaceBase.Models)
-        
-        super().__init__()
+        super().__init__(modelType)
         
         #client = genai.Client(api_key=API)
         self._model = GenerativeModel(modelType.value[MODEL_INFO.MODEL_TYPE])
