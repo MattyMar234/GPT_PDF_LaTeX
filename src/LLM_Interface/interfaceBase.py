@@ -54,16 +54,25 @@ class LLMInterfaceBase(ABC):
     def __init__(self, modelType: Models):
         assert isinstance(modelType, LLMInterfaceBase.Models)
         self._selectedModel = modelType
+        self._lastRequest_time = time.time()
     
-    def sleepFor_RPM(self, workerNumber: int = 1) -> None:
+    def _sleepFor_RPM(self) -> None:
         value_RPM = self._selectedModel.value.get(MODEL_INFO.RPM) 
-        
         if value_RPM is None: return
-        if workerNumber <= 0: workerNumber = 1
+
+        value = (60/value_RPM) + 0.5        #il valore dello sleep
+        requestTime = time.time()           #quando sto facendo questa richiesta
+        dt = requestTime - self._lastRequest_time # il tempo trascorso dall'ultima richiesta
+
+        #se il tempo che è passato dall'ultima richiesta è superiore al valore di attesa, esco.
+        if dt >= value:
+            return
         
-        sleep_value = (60/value_RPM)*workerNumber + 0.5
+        #dormo per la differenza
+        sleep_value = max(value - dt, 0)
         logging.info(f"thread {threading.get_ident()} spleeping for {sleep_value:0.3f} s for RPM limit")
         time.sleep(sleep_value)
+            
     
     def modelName2Enum(name: str) -> Models | None:    
         return LLMInterfaceBase.Models.toEnum(name)

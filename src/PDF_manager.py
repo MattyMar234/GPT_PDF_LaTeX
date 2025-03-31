@@ -136,6 +136,27 @@ class PDF_Manager:
     def split_PDF(self) -> None:
         pass
     
+    def _extract_pdf_page_images(doc, page, output_folder: str, startIndex: int = 0, prefix: str = "") -> Tuple[int, List[str]]:
+        image_index = startIndex
+        imgList: List[str] = []
+        
+        for i, img in enumerate(page.get_images(full=True)):
+            #logging.info(f"Image [{img_index+1}/{img_count}]")
+            
+            xref = img[0]
+            base_image = doc.extract_image(xref)
+            image_bytes = base_image["image"]
+            image_ext = base_image["ext"]
+            img_path = os.path.join(output_folder, f"{'' if prefix == '' else prefix + '-'}{image_index}.{image_ext}")
+            
+            with open(img_path, "wb") as img_file:
+                img_file.write(image_bytes)
+
+            logging.info(f"Image saved in: {img_path}")
+            imgList.append(img_path)
+            image_index += 1
+
+        return image_index, imgList
     
     def _extractImages(self, file_list: List[str], output_path: str | None = None) -> None:
         for i, file in enumerate(file_list):
@@ -219,7 +240,7 @@ class PDF_Manager:
             '\n': '\n\t'
         }
         
-        def process_page(page, j, outputStream):
+        def process_page(page, doc, j, outputStream, imgFolder):
             logging.info(f"processando pagina [{j+1}/{len(doc)}]")
             pix = page.get_pixmap(matrix=fitz.Matrix(3, 3))
             image_bytes = io.BytesIO(pix.tobytes("png"))
@@ -227,9 +248,12 @@ class PDF_Manager:
             response: dict | GenerateContentResponse | None = None
             failure_count = 0
             text: str = ""
-            
+            time_start: float = 0.0
+            time_end: float = 0.0
+
             try:
                 while True:
+                    time_start = time.time()
                     response = modelInterface.chat(prompt=DEFAULT_PROMPT_v2, image=image)
                     text = response.text if isinstance(response, GenerateContentResponse) else response["message"]["content"]
                 
@@ -250,8 +274,7 @@ class PDF_Manager:
                 logging.error(e)
                 return
             
-            finally:
-                modelInterface.sleepFor_RPM(workerNumber=num_threads)
+            
                 
             latex = text.split("```latex")[1].split("```")[0]
             match = re.search(r"\\begin{document}(.*?)\\end{document}", latex, re.DOTALL)
@@ -261,6 +284,19 @@ class PDF_Manager:
                 latex = re.sub(pattern = key_pattern, repl=LaTex_Elements_toReplace[key_pattern], string=latex)
                 
             outputStream.write(latex) 
+
+            _, imgs = self._extract_pdf_page_images(page=page, doc=doc, startIndex=0, prefix=str(j), output_folder=imgFolder)
+
+            for img in imgs:
+
+                latexImage = "\n\t\begin{center}\n\t\t\\begin{figure}[H]"
+                latexImage += "\n\t\t\t\centering"
+                latexImage += f"\n\t\t\t\includegraphics[width=0.50\\textwidth]{img}"
+                latexImage += "\n\t\t\\end{figure}"
+                latexImage += "\n\t\\end{center}\n\n"
+
+                outputStream.write(latexImage)
+
         
 
         for i, PDF_PATH in enumerate(inputFils):
@@ -299,7 +335,7 @@ class PDF_Manager:
             
         
             with ThreadPoolExecutor(max_workers=num_threads) as executor, open(targetFile, mode='a') as outputStream:
-                futures = {executor.submit(process_page, page, j, outputStream): j for j, page in enumerate(doc)}
+                futures = {executor.submit(process_page, page, doc, j, outputStream, imgFolder=imgFolder): j for j, page in enumerate(doc)}
                 for future in as_completed(futures):
                     future.result()  # Attende il completamento della pagina
                     outputStream.flush() 
