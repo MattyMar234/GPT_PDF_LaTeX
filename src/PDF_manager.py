@@ -148,7 +148,8 @@ class PDF_Manager:
             image_bytes = base_image["image"]
             image_ext = base_image["ext"]
             img_path = os.path.join(output_folder, f"{'' if prefix == '' else prefix + '-'}{image_index}.{image_ext}")
-            
+            logging.info(f"New image extracted: {'' if prefix == '' else prefix + '-'}{image_index}.{image_ext}")
+
             with open(img_path, "wb") as img_file:
                 img_file.write(image_bytes)
 
