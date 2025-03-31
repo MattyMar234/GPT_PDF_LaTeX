@@ -136,15 +136,15 @@ class PDF_Manager:
     def split_PDF(self) -> None:
         pass
     
-    def _extract_pdf_page_images(doc, page, output_folder: str, startIndex: int = 0, prefix: str = "") -> Tuple[int, List[str]]:
+    def _extract_pdf_page_images(self, document, doc_page, output_folder: str, startIndex: int = 0, prefix: str = "") -> Tuple[int, List[str]]:
         image_index = startIndex
         imgList: List[str] = []
         
-        for i, img in enumerate(page.get_images(full=True)):
+        for i, img in enumerate(doc_page.get_images(full=True)):
             #logging.info(f"Image [{img_index+1}/{img_count}]")
             
             xref = img[0]
-            base_image = doc.extract_image(xref)
+            base_image = document.extract_image(xref)
             image_bytes = base_image["image"]
             image_ext = base_image["ext"]
             img_path = os.path.join(output_folder, f"{'' if prefix == '' else prefix + '-'}{image_index}.{image_ext}")
@@ -286,20 +286,19 @@ class PDF_Manager:
                 
             outputStream.write(latex) 
 
-            _, imgs = self._extract_pdf_page_images(page=page, doc=doc, startIndex=0, prefix=str(j), output_folder=imgFolder)
+            _, imgs = self._extract_pdf_page_images(document=doc, doc_page=page, startIndex=0, prefix=str(j), output_folder=imgFolder)
 
             for img in imgs:
 
-                latexImage = "\n\t\begin{center}\n\t\t\\begin{figure}[H]"
-                latexImage += "\n\t\t\t\centering"
-                latexImage += f"\n\t\t\t\includegraphics[width=0.50\\textwidth]{img}"
-                latexImage += "\n\t\t\\end{figure}"
-                latexImage += "\n\t\\end{center}\n\n"
+                latexImage = "\n%\t\\begin{center}\n\t\t\\begin{figure}[H]"
+                latexImage += "\n%\t\t\t\centering"
+                latexImage += "\n%\t\t\t\includegraphics[width=0.50\\textwidth]{" + str(img) + "}"
+                latexImage += "\n%\t\t\\end{figure}"
+                latexImage += "\n%\t\\end{center}\n\n"
 
                 outputStream.write(latexImage)
 
         
-
         for i, PDF_PATH in enumerate(inputFils):
             fileName = os.path.split(PDF_PATH)[1].split('.')[0]
             texFIle = f"{fileName}.tex"
