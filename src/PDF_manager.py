@@ -290,9 +290,10 @@ class PDF_Manager:
 
             for img in imgs:
 
-                latexImage = "\n%\t\\begin{center}\n\t\t\\begin{figure}[H]"
-                latexImage += "\n%\t\t\t\centering"
-                latexImage += "\n%\t\t\t\includegraphics[width=0.50\\textwidth]{" + str(img) + "}"
+                latexImage =  "\n%\t\\begin{center}"
+                latexImage += "\n%\t\t\\begin{figure}[H]"
+                latexImage += "\n%\t\t\t\\centering"
+                latexImage += "\n%\t\t\t\\includegraphics[width=0.50\\textwidth]{" + str(img) + "}"
                 latexImage += "\n%\t\t\\end{figure}"
                 latexImage += "\n%\t\\end{center}\n\n"
 
@@ -312,9 +313,9 @@ class PDF_Manager:
             if not os.path.exists(imgFolder):
                 os.makedirs(imgFolder)
         
-            logging.info(f"{'-'*60}")
+            logging.info(f"{'-'*max((len(PDF_PATH)+20), 60)}")
             logging.info(f"Processando file [{i + 1}/{len(inputFils)}]: {PDF_PATH}")
-            logging.info(f"{'-'*60}")
+            logging.info(f"{'-'*max((len(PDF_PATH)+20), 60)}")
         
             reader: PyPDF2.PdfReader = PyPDF2.PdfReader(PDF_PATH)
             metadata = reader.metadata

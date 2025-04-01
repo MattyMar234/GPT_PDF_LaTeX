@@ -6,4 +6,5 @@ gp/*
 dist/*
 .idea
 venv
-test_output
+output
+inputs

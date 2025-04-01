@@ -70,7 +70,7 @@ class LLMInterfaceBase(ABC):
         
         #dormo per la differenza
         sleep_value = max(value - dt, 0)
-        logging.info(f"thread {threading.get_ident()} spleeping for {sleep_value:0.3f} s for RPM limit")
+        logging.info(f"thread {threading.get_ident()} sleeping for {sleep_value:0.3f} s for RPM limit")
         time.sleep(sleep_value)
             
     

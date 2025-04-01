@@ -1,5 +1,6 @@
 #====================================================================#
 #mie librerie 
+import time
 from AppData import *
 import AppData
 from PDF_manager import PDF_Manager
@@ -137,6 +138,7 @@ def main() -> None:
     for f in files:
         logging.info(f"- {f}")
 
+    time.sleep(2)
      
     outputFolder:str = AppData.OUTPUT_FOLDER if not args.output or not os.path.exists(args.output) else args.output
     
