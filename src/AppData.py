@@ -6,4 +6,4 @@ import os
 
     
 
-OUTPUT_FOLDER: Final[str] = os.path.join(os.path.split(os.getcwd())[0], "output")
+OUTPUT_FOLDER: Final[str] = os.path.join(os.getcwd(), "output")
